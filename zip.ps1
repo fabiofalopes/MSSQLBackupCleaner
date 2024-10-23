@@ -87,7 +87,7 @@ function Compress-AllBackupFiles {
             Write-Host "Zip file size: $([math]::Round($zipSize, 2)) MB"
         }
         catch {
-            Write-Host "Error creating zip file for $date: $_"
+            Write-Host "Error creating zip file for $date: ${_}"
         }
     }
 }

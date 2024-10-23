@@ -1,4 +1,5 @@
-Import-Module -Name PS7Zip
+# Full path to 7z.exe
+$sevenZipPath = "C:\Program Files\7-Zip\7z.exe"
 
 $backupPath = "D:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Backup"
 $destinationPath = $backupPath
@@ -68,11 +69,14 @@ function Compress-AllBackupFiles {
 
         try {
             Write-Host "Creating zip file: $zipFileName"
-            
-            # Create a zip file containing all backup files for this date
-            foreach ($file in $files) {
-                Compress-7Zip -Path $file.FullName -ArchiveFileName $zipFileName -Force
-            }
+
+            # Build the command for 7z to create the zip file
+            $filesToCompress = $files | ForEach-Object { "`"$($_.FullName)`"" } -join " "
+            $sevenZipCommand = "`"$sevenZipPath`" a -tzip `"$zipFileName`" $filesToCompress"
+
+            # Run the 7z.exe command
+            Write-Host "Running command: $sevenZipCommand"
+            Invoke-Expression $sevenZipCommand
             
             Write-Host "Successfully created zip file for $date"
             Write-Host "Files included:"
@@ -92,6 +96,3 @@ function Compress-AllBackupFiles {
 Compress-AllBackupFiles -sourceFolder $backupPath -destinationFolder $destinationPath
 
 Write-Host "`nScript execution completed."
-
-# Press any key to exit..."
-# $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')

@@ -1,5 +1,5 @@
-Import-Module -Name PS7Zip
-
+# Set the specific backup directory path
+# $backupPath = "C:\Users\fabio\Desktop\backuptest\backup"
 $backupPath = "D:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Backup"
 $destinationPath = $backupPath
 
@@ -70,9 +70,7 @@ function Compress-AllBackupFiles {
             Write-Host "Creating zip file: $zipFileName"
             
             # Create a zip file containing all backup files for this date
-            foreach ($file in $files) {
-                Compress-7Zip -Path $file.FullName -ArchiveFileName $zipFileName -Force
-            }
+            Compress-Archive -Path $files.FullName -DestinationPath $zipFileName -Force
             
             Write-Host "Successfully created zip file for $date"
             Write-Host "Files included:"

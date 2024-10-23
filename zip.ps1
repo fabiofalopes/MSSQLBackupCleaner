@@ -1,3 +1,4 @@
+Write-Output "Starting Compression Process..."
 # Full path to 7z.exe
 $sevenZipPath = "C:\Program Files\7-Zip\7z.exe"
 
@@ -18,14 +19,14 @@ function Compress-AllBackupFiles {
     Write-Host "Found $($allBackupFiles.Count) total .bak files"
 
     # Group files by date using a more robust approach
-    $groupedFiles = @{}
-    
+    $groupedFiles = @{ }
+
     foreach ($file in $allBackupFiles) {
         # Match pattern "2024_10_04" in filename
         if ($file.Name -match "(\d{4}_\d{2}_\d{2})") {
             $dateFound = $matches[1]
             Write-Host "Processing file: $($file.Name) - Found date: $dateFound"
-            
+
             if (-not $groupedFiles.ContainsKey($dateFound)) {
                 $groupedFiles[$dateFound] = [System.Collections.ArrayList]::new()
             }
@@ -71,23 +72,22 @@ function Compress-AllBackupFiles {
             Write-Host "Creating zip file: $zipFileName"
 
             # Build the command for 7z to create the zip file
-            $filesToCompress = $files | ForEach-Object { "`"$($_.FullName)`"" } -join " "
-            $sevenZipCommand = "`"$sevenZipPath`" a -tzip `"$zipFileName`" $filesToCompress"
+            $filesToCompress = $files | ForEach-Object { $_.FullName } -join "`" `" "
+            $sevenZipCommand = @("a", "-tzip", "`"$zipFileName`"", $filesToCompress)
 
-            # Run the 7z.exe command
-            Write-Host "Running command: $sevenZipCommand"
-            Invoke-Expression $sevenZipCommand
-            
+            # Run the 7z.exe command using Start-Process
+            Start-Process -FilePath $sevenZipPath -ArgumentList $sevenZipCommand -Wait
+
             Write-Host "Successfully created zip file for $date"
             Write-Host "Files included:"
             $files | ForEach-Object { Write-Host "  - $($_.Name)" }
-            
+
             # Calculate and display zip file size
             $zipSize = (Get-Item $zipFileName).Length / 1MB
             Write-Host "Zip file size: $([math]::Round($zipSize, 2)) MB"
         }
         catch {
-            Write-Host "Error creating zip file for $date`: $_"
+            Write-Host "Error creating zip file for $date: $_"
         }
     }
 }
@@ -96,3 +96,4 @@ function Compress-AllBackupFiles {
 Compress-AllBackupFiles -sourceFolder $backupPath -destinationFolder $destinationPath
 
 Write-Host "`nScript execution completed."
+Write-Output "Compression Process Finished."

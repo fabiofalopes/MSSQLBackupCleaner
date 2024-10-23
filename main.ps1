@@ -15,3 +15,5 @@ foreach ($script in $scripts) {
 }
 
 Write-Host "All scripts completed."
+
+Pause # Keeps the window open until you press a key

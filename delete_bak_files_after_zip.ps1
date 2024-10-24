@@ -76,7 +76,24 @@ function Remove-ProcessedBackups {
                     }
                 }
             } else {
-                Write-Host "No matching .bak files found for date $formattedDate"
+                Write-Host "No matching .bak files found for date $formattedDate. They may have been already deleted." -ForegroundColor Yellow
+                
+                # Log that no files were found to remove
+                $logEntry = [PSCustomObject]@{
+                    Date = Get-Date
+                    ZipFile = $zipFile.Name
+                    RemovedFiles = "No .bak files found to remove"
+                }
+                
+                # Update the log file
+                $logFile = Join-Path $backupFolder "cleanup_log.json"
+                if (Test-Path $logFile) {
+                    $existingLog = Get-Content $logFile | ConvertFrom-Json
+                    $existingLog = [array]$existingLog + [array]$logEntry
+                    $existingLog | ConvertTo-Json -Depth 100 | Set-Content $logFile
+                } else {
+                    @($logEntry) | ConvertTo-Json -Depth 100 | Set-Content $logFile
+                }
             }
         } else {
             Write-Host "Warning: Zip file $($zipFile.Name) doesn't match expected naming pattern" -ForegroundColor Yellow

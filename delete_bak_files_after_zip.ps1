@@ -28,38 +28,60 @@ function Remove-ProcessedBackups {
     Write-Host "Scanning folder: $backupFolder"
 
     # Get all zip files
-    $zipFiles = Get-ChildItem -Path $backupFolder -Filter "DatabaseBackups_*.zip"
+    $zipFiles = Get-ChildItem -Path $backupFolder -Filter "DatabaseBackups_*.zip" | Sort-Object LastWriteTime -Descending
     Write-Host "Found $($zipFiles.Count) zip files"
+
+    # Get the most recent zip file date
+    $mostRecentZipDate = ($zipFiles | Select-Object -First 1).BaseName -replace 'DatabaseBackups_', ''
+    $mostRecentDate = [DateTime]::ParseExact($mostRecentZipDate, 'yyyyMMdd', $null)
 
     foreach ($zipFile in $zipFiles) {
         Write-Host "`nProcessing zip file: $($zipFile.Name)"
         
-        # Extract date from zip filename (format: DatabaseBackups_20241004.zip)
         if ($zipFile.Name -match "DatabaseBackups_(\d{8})\.zip") {
             $dateString = $matches[1]
-            # Convert to date format in .bak files (2024_10_04)
-            $formattedDate = "{0}_{1}_{2}" -f $dateString.Substring(0,4), 
-                                            $dateString.Substring(4,2), 
-                                            $dateString.Substring(6,2)
+            $zipDate = [DateTime]::ParseExact($dateString, 'yyyyMMdd', $null)
             
-            Write-Host "Looking for backup files from date: $formattedDate"
+            Write-Host "Looking for backup files from date: $($zipDate.ToString('yyyy_MM_dd'))"
 
-            # Verify zip file integrity
             if (-not (Test-Archive -Path $zipFile.FullName)) {
                 Write-Host "Warning: Zip file $($zipFile.Name) appears to be corrupt. Skipping cleanup for this date." -ForegroundColor Yellow
                 continue
             }
 
             # Find corresponding .bak files
-            $bakFiles = Get-ChildItem -Path $backupFolder -Filter "*.bak" | 
-                       Where-Object { $_.Name -like "*$formattedDate*" }
+            $bakFiles = if ($zipDate -eq $mostRecentDate) {
+                # For the most recent date, get all .bak files created on or after this date
+                Get-ChildItem -Path $backupFolder -Filter "*.bak" | 
+                Where-Object { $_.LastWriteTime -ge $zipDate.Date }
+            } else {
+                # For older dates, use the exact date match
+                Get-ChildItem -Path $backupFolder -Filter "*.bak" | 
+                Where-Object { $_.Name -like "*$($zipDate.ToString('yyyy_MM_dd'))*" }
+            }
 
             if ($bakFiles.Count -gt 0) {
                 Write-Host "Found $($bakFiles.Count) .bak files to remove"
                 
-                # ... (rest of the code for removing files and logging)
+                # Create a backup log entry
+                $logEntry = [PSCustomObject]@{
+                    Date = Get-Date
+                    ZipFile = $zipFile.Name
+                    RemovedFiles = $bakFiles.Name -join ', '
+                }
+
+                # Remove the .bak files
+                foreach ($bakFile in $bakFiles) {
+                    try {
+                        Remove-Item $bakFile.FullName -Force
+                        Write-Host "Removed: $($bakFile.Name)" -ForegroundColor Green
+                    }
+                    catch {
+                        Write-Host "Error removing $($bakFile.Name): $_" -ForegroundColor Red
+                    }
+                }
             } else {
-                Write-Host "No matching .bak files found for date $formattedDate. They may have been already deleted." -ForegroundColor Yellow
+                Write-Host "No matching .bak files found for date $($zipDate.ToString('yyyy_MM_dd')). They may have been already deleted." -ForegroundColor Yellow
                 
                 # Log that no files were found to remove
                 $logEntry = [PSCustomObject]@{
@@ -67,16 +89,16 @@ function Remove-ProcessedBackups {
                     ZipFile = $zipFile.Name
                     RemovedFiles = "No .bak files found to remove"
                 }
-                
-                # Update the log file
-                $logFile = Join-Path $backupFolder "cleanup_log.json"
-                if (Test-Path $logFile) {
-                    $existingLog = Get-Content $logFile | ConvertFrom-Json
-                    $existingLog = [array]$existingLog + [array]$logEntry
-                    $existingLog | ConvertTo-Json -Depth 100 | Set-Content $logFile
-                } else {
-                    @($logEntry) | ConvertTo-Json -Depth 100 | Set-Content $logFile
-                }
+            }
+            
+            # Update the log file
+            $logFile = Join-Path $backupFolder "cleanup_log.json"
+            if (Test-Path $logFile) {
+                $existingLog = Get-Content $logFile | ConvertFrom-Json
+                $existingLog = [array]$existingLog + [array]$logEntry
+                $existingLog | ConvertTo-Json -Depth 100 | Set-Content $logFile
+            } else {
+                @($logEntry) | ConvertTo-Json -Depth 100 | Set-Content $logFile
             }
         } else {
             Write-Host "Warning: Zip file $($zipFile.Name) doesn't match expected naming pattern" -ForegroundColor Yellow

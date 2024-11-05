@@ -4,7 +4,8 @@
 $scripts = @(
     ".\zip.ps1",
     ".\delete_bak_files_after_zip.ps1",
-    ".\clean_old_zip_files.ps1"
+    ".\clean_old_zip_files.ps1",
+    ".\manage_latest.ps1"
 )
 
 # Run each script in sequence

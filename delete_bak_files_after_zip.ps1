@@ -1,6 +1,15 @@
-# Set the specific backup directory path
-# $backupPath = "C:\Users\fabio\Desktop\backuptest\backup"
-$backupPath = "D:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Backup"
+# Import the environment variables module
+Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath "Get-EnvVariable.psm1") -Force
+
+# Read configuration from .env file
+$backupPath = Get-EnvVariable -Key "BACKUP_PATH"
+
+# Validate configuration
+if (-not $backupPath) {
+    Write-Error "BACKUP_PATH not found in .env file. Please check your configuration."
+    exit 1
+}
+
 function Test-Archive {
     param (
         [string]$Path
@@ -21,7 +30,7 @@ function Test-Archive {
 
 function Remove-ProcessedBackups {
     param (
-        [string]$backupFolder = "C:\Users\fabio\Desktop\backuptest\backup"
+        [string]$backupFolder = $backupPath
     )
 
     Write-Host "Starting backup cleanup process..."

@@ -1,12 +1,26 @@
-# Full path to 7z.exe
-$sevenZipPath = "C:\Program Files\7-Zip\7z.exe"
+# Import the environment variables module
+Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath "Get-EnvVariable.psm1") -Force
 
-$backupPath = "D:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Backup"
+# Read configuration from .env file
+$sevenZipPath = Get-EnvVariable -Key "SEVEN_ZIP_PATH"
+$backupPath = Get-EnvVariable -Key "BACKUP_PATH"
+
+# Validate configuration
+if (-not $sevenZipPath) {
+    Write-Error "SEVEN_ZIP_PATH not found in .env file. Please check your configuration."
+    exit 1
+}
+
+if (-not $backupPath) {
+    Write-Error "BACKUP_PATH not found in .env file. Please check your configuration."
+    exit 1
+}
+
 $destinationPath = $backupPath
 
 function Compress-AllBackupFiles {
     param (
-        [string]$sourceFolder = "C:\Users\fabio\Desktop\backuptest\backup",
+        [string]$sourceFolder = $backupPath,
         [string]$destinationFolder = $sourceFolder
     )
 

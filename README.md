@@ -17,9 +17,30 @@ Create a schedule for 'main.ps1' script.
 
 # Requirements
 
-- Change the '$backupPath' inside each script.
+- Create a `.env` file in the same directory as the scripts:
+  1. Copy `.env.example` to `.env`
+  2. Update the values in `.env` with your actual configuration:
+     ```
+     BACKUP_PATH=D:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Backup
+     TARGET_USER=DOMAIN\Username
+     SEVEN_ZIP_PATH=C:\Program Files\7-Zip\7z.exe
+     KEEP_LATEST_ZIPS=5
+     ```
+     Configuration options:
+     - `BACKUP_PATH`: Path to your backup directory
+     - `TARGET_USER`: User account that needs read access to the latest backups
+     - `SEVEN_ZIP_PATH`: Path to the 7-Zip executable
+     - `KEEP_LATEST_ZIPS`: Number of latest zip files to keep (default: 5)
 - Check [How to allow scripts to run](https://learn.microsoft.com/en-us/previous-versions//bb613481(v=vs.85)?redirectedfrom=MSDN) if can't run .ps1 scripts.
+
+# Project Structure
+
+- `Get-EnvVariable.psm1`: Shared PowerShell module for reading environment variables
+- `manage_latest.ps1`: Script to manage the latest backup file
+- `.env`: Configuration file containing environment variables (not tracked in git)
+- `.env.example`: Example configuration file (tracked in git)
+- Other scripts as mentioned in the Steps section
 
 ## TODO 
 
-- [ ] Read the '$backupPath' from the 'main.ps1' script or from a .env file.
+- [x] Read the '$backupPath' from the 'main.ps1' script or from a .env file.

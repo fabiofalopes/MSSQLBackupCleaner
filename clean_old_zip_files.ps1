@@ -1,6 +1,20 @@
-# Define the backup path
-# $backupPath = "C:\Users\fabio\Desktop\backuptest\backup"
-$backupPath = "D:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Backup"
+# Import the environment variables module
+Import-Module -Name (Join-Path -Path $PSScriptRoot -ChildPath "Get-EnvVariable.psm1") -Force
+
+# Read configuration from .env file
+$backupPath = Get-EnvVariable -Key "BACKUP_PATH"
+$keepLatestZips = [int](Get-EnvVariable -Key "KEEP_LATEST_ZIPS")
+
+# Validate configuration
+if (-not $backupPath) {
+    Write-Error "BACKUP_PATH not found in .env file. Please check your configuration."
+    exit 1
+}
+
+if (-not $keepLatestZips) {
+    Write-Error "KEEP_LATEST_ZIPS not found in .env file. Please check your configuration."
+    exit 1
+}
 
 # Get all zip files in the backup path
 $zipFiles = Get-ChildItem -Path $backupPath -Filter *.zip
@@ -15,8 +29,8 @@ $zipFilesWithDate = $zipFiles | ForEach-Object {
     }
 }
 
-# Sort the files by date and keep only the 5 most recent
-$filesToKeep = $zipFilesWithDate | Sort-Object -Property Date -Descending | Select-Object -First 5
+# Sort the files by date and keep only the most recent ones
+$filesToKeep = $zipFilesWithDate | Sort-Object -Property Date -Descending | Select-Object -First $keepLatestZips
 
 # Get the files to delete
 $filesToDelete = $zipFilesWithDate | Where-Object { $_.File -notin $filesToKeep.File }
